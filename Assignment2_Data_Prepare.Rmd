@@ -28,7 +28,7 @@ csb.df %>%
   {.} -> csb.vars.df
 ```
 
-For variable `NPT4_PRIV` and `NPT4_PUB`, we combine them together and get a new vaiable `tuition` as a target variable. Firstly we convert the class of these two variables from character to numeric. And then eliminate missing values of them because thoes two variables are mutually exclusive using `replace_na_values` function. As the last step, we use `MUTATE` command from the `dplyr` library and `subset` function to alter variables of the input data frame `csb.vars.df`.
+For variable `NPT4_PRIV` and `NPT4_PUB`, we combine them together and get a new vaiable `NPT4` (tuition) as a target variable. Firstly we convert the class of these two variables from character to numeric. And then eliminate missing values of them because thoes two variables are mutually exclusive using `replace_na_values` function. As the last step, we use `MUTATE` command from the `dplyr` library and `subset` function to alter variables of the input data frame `csb.vars.df`.
 
 ```{r, message=FALSE, warning=FALSE}
 replace_na_values <- function (variable){
