@@ -71,6 +71,7 @@ numeric_to_factor <- function(var){
 
 csb.temp.df %>%
   mutate(FAMINC=numeric_to_factor(FAMINC),
+         FEMALE=numeric_to_factor(FEMALE),
          MARRIED=numeric_to_factor(MARRIED),
          DEP_STAT_PCT_IND=numeric_to_factor(DEP_STAT_PCT_IND),
          FIRST_GEN=numeric_to_factor(FIRST_GEN),
