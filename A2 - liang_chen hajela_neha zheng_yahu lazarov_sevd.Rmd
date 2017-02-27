@@ -103,10 +103,6 @@ The next step is to create the association rules. We will use the apriori functi
 ```{r}
 rules = apriori(csb.var.df, parameter = list(supp = 0.1, conf = 0.7, minlen = 2, maxlen = 10))
 print(paste0("Number of rules:", length(rules)))
-print(rules)
-```
 
-```{r}
-inspect(rules[2])
 ```
 
