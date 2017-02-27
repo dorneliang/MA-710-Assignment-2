@@ -98,11 +98,63 @@ csb.fact.df %>%
 
 The data frame `csb.var.df` contains our final set of variables, ready for further analysis.
 
-The next step is to create the association rules. We will use the apriori function from the arules package.
+The next step is to create the association rules. We will use the apriori function from the arules package. The target variable is CONTROL (ownership) which is a factor variable with three levels: 1 - Public college, 2 - Private college not for profit, 3 - Private college for profit. We will explroe rules which contain CONTROL on the right hand side of the rule. Our focus will be on maximum length of 10 and miniumum length of 2 and on confidence level of at least 0.07.
+
+```{r, warning=FALSE}
+csb.var.df %>%
+  select(CONTROL, ST_FIPS, FAMINC, MARRIED,DEP_STAT_PCT_IND, FIRST_GEN, CDR3, CDR3_DENOM,PCTPELL, PCTFLOAN, 
+         DEBT_N, CUML_DEBT_N, HIGHDEG, REGION, NUMBRANCH, CCBASIC, CURROPER, YEAR) %>%
+  {.} -> csb.var.control.df
+
+apriori.appearance = list(rhs=c('CONTROL=1','CONTROL=2', "CONTROL=3"), default='lhs')
+apriori.parameter = list(support=0.01, confidence=0.07, minlen=2, maxlen=10)
+apriori.control = list(verbose=FALSE)
+
+rules.control = apriori(csb.var.control.df, parameter=apriori.parameter, appearance=apriori.appearance, control=apriori.control)
+
+
+#rules = apriori(csb.var.control.df, parameter = list(supp = 0.1, conf = 0.7, minlen = 2, maxlen = 10))
+print(paste0("Number of rules:", length(rules)))
+```
+Based on our criteria of looking at only rules with confidence level higher that 0.07, support higher than 0.01, length between 2 and 10 and having the CONTROL variable on the right hand side, we come up wih 18,365 rules. We will sort the rules based on three separate criterie - support, confidence and lift.
+
+First, we will do the sort by lift.
 
 ```{r}
-rules = apriori(csb.var.df, parameter = list(supp = 0.1, conf = 0.7, minlen = 2, maxlen = 10))
-print(paste0("Number of rules:", length(rules)))
+inspect(sort(rules.control, by='lift')[1:3])
 
 ```
+
+From the first rule, we can see that 1% of the cases are where the family income is in the highest quantile, the share of independent students is in the lowest quantile, the number of students in the mean debt cohost is in the medium quantile, the highest degree awarded is Bachelor, the region of the college is Great Lakes, the number of branches is 1 and the college is private not for profit. 96.98% of the colleges for which the the family income is in the highest quantile, the share of independent students is in the lowest quantile, the number of students in the mean debt cohost is in the medium quantile, the highest degree awarded is Bachelor, the region of the college is Great Lakes and the number of branches is 1 are private not for profit colleges. The number of private non profit colleges that have all of the above conditions (the family income is in the highest quantile, the share of independent students is in the lowest quantile, the number of students in the mean debt cohost is in the medium quantile, the highest degree awarded is Bachelor, the region of the college is Great Lakes, the number of branches is 1) is 252% higher than we would expect if the college is non for profit and the rest of the conditions were independent.
+
+From the second rule, we can see that 1% of the total cases are where the family income is in the highest quantile, the share of independent students is in the lowest quantile, the number of students in the cummulative debt cohost is in the medium quantile, the highest degree awarded is Graduate, the region of the college is Great Lakes, the number of branches is 1 and the college is private not for profit. 96.98% of the colleges for which the the family income is in the highest quantile, the share of independent students is in the lowest quantile, the number of students in the cummulative debt cohost is in the medium quantile, the highest degree awarded is Graduate, the region of the college is Great Lakes and the number of branches is 1 are private not for profit colleges. The number of private non profit colleges that have all of the above conditions (the family income is in the highest quantile, the share of independent students is in the lowest quantile, the number of students in the cummulative debt cohost is in the medium quantile, the highest degree awarded is Graduate, the region of the college is Great Lakes, the number of branches is 1) is 252% higher than we would expect if the college is non for profit and the rest of the conditions were independent.
+
+The next step is to sort by the support values:
+
+```{r}
+inspect(sort(rules.control, by='support')[1:3])
+
+```
+
+From the first rule, we can see that 39% of the cases are where the Carnegie Basic classification is missing and the college is private for profit. 42.31% of the colleges for which the Carnegie basic classification is missing, are private for profit colleges. The number of private for profit colleges that have the left hand condition (the Carnegie Basic Classification is missing) is 1% lower than we would expect if the college is non for profit and the rest of the conditions were independent.
+
+From the second rule, we can see that 39% of the cases are where the Current Operation information is missing and the college is private for profit. 42.31% of the colleges for which the Current Operation information is missing, are private for profit colleges. The number of private for profit colleges that have the left hand condition (the current operation information is missing) is 1% lower than we would expect if the college is non for profit and the rest of the conditions were independent.
+
+From the third rule, we can see that 39% of the cases are where the Carnegie Basic classification and the Current Operation information is missing and the college is private and for profit. 42.31% of the colleges for which the Carnegie Basic classification and the Current Operation information are both missing, are private for profit colleges. The number of private non profit colleges that have the left hand condition (Carnegie Basic classification and the Current Operation information) is 1% lower than we would expect if the college is non for profit and the rest of the conditions were independent.
+
+
+
+
+The final step is to sort by the confidence value:
+```{r}
+inspect(sort(rules.control, by='confidence')[1:3])
+
+```
+
+From the first rule, we can see that 1.11% of the total cases are where the family income is in the middle quantile, percent of students who receive federal grants is in the lowest quantile, the number of students in the cummulative debt cohost is in the highest quantile, the highest degree awarded is Associate, the number of branches is 1 and the college is public. 99.74% of the colleges for which the the family income is in the middle quantile, percent of students who receive federal grants is in the lowest quantile, the number of students in the cummulative debt cohost is in the highest quantile, the highest degree awarded is Associate, the number of branches is 1 are public colleges. The number of public colleges that have all of the above left hand conditions (the family income is in the middle quantile, percent of students who receive federal grants is in the lowest quantile, the number of students in the cummulative debt cohost is in the highest quantile, the highest degree awarded is Associate, the number of branches is 1) is 235.53% higher than we would expect if the college is public and the rest of the conditions were independent.
+
+From the first rule, we can see that 1.11% of the total cases are where the family income is in the middle quantile, percent of students who receive federal grants is in the lowest quantile, the number of students in the median debt cohost is in the highest quantile, the highest degree awarded is Associate, the number of branches is 1 and the college is public. 99.74% of the colleges for which the the family income is in the middle quantile, percent of students who receive federal grants is in the lowest quantile, the number of students in the median debt cohost is in the highest quantile, the highest degree awarded is Associate, the number of branches is 1 are public colleges. The number of public colleges that have all of the above left hand conditions (the family income is in the middle quantile, percent of students who receive federal grants is in the lowest quantile, the number of students in the median debt cohost is in the highest quantile, the highest degree awarded is Associate, the number of branches is 1) is 235.53% higher than we would expect if the college is public and the rest of the conditions were independent.
+
+
+From the first rule, we can see that 1.11% of the total cases are where the family income is in the middle quantile, percent of students who receive federal grants is in the lowest quantile, the number of students in the cummulative debt cohost is in the highest quantile, the number of students in the median debt cohost is in the highest quantile, the highest degree awarded is Associate, the number of branches is 1 and the college is public. 99.74% of the colleges for which the the family income is in the middle quantile, percent of students who receive federal grants is in the lowest quantile, the number of students in the cummulative debt cohost is in the highest quantile, the number of students in the median debt cohost is in the highest quantile, the highest degree awarded is Associate, the number of branches is 1 are public colleges. The number of public colleges that have all of the above left hand conditions (the family income is in the middle quantile, percent of students who receive federal grants is in the lowest quantile, the number of students in the cummulative debt cohost is in the highest quantile, the number of students in the median debt cohost is in the highest quantile, the highest degree awarded is Associate, the number of branches is 1) is 235.53% higher than we would expect if the college is public and the rest of the conditions were independent.
 
