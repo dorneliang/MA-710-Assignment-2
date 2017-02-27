@@ -64,7 +64,7 @@ make.ntiles = function (inputvar, n) {
 
 numeric_to_factor <- function(var){
   var.temp= as.numeric(var)
-  var.F=make.ntiles(var.temp, 10)
+  var.F=make.ntiles(var.temp, 3)
   return(var.F)
 }
 
