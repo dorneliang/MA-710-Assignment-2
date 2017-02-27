@@ -1,0 +1,160 @@
+---
+title: "MA 710 - Assignment 2"
+author: "MA 710 - Dataminers"
+date: "February 22, 2017"
+output: html_document
+---
+
+### Loading libraries and data
+```{r, message=FALSE, warning=FALSE}
+library(dplyr)
+library(readr)
+library(arules)
+```
+
+We read in the csv file `MERGED2014_15_PP.csv` into the data frame `csb.df` using the `read_csv` function of the `readr` package.
+
+```{r,message=FALSE, warning=FALSE}
+
+year = 2000
+csb.df = data.frame()
+
+for (i in c(1:15)) {
+  if (i<10){
+    num = paste0("0", i, sep="")
+  }
+    else {
+      num = i
+    }
+  file_name = paste0('MERGED',year,"_", num, "_PP.csv", sep="")
+  csb.temp.df = read_csv(paste0('C:/Users/student/Desktop/MA710/Tuesday version/Assignment 1/CollegeScorecard_Raw_Data/', file_name))
+  csb.temp.df$YEAR = year
+  csb.df = rbind(csb.df, csb.temp.df)
+  year = year+1
+  
+}
+
+```
+
+### Data cleaning and variable modification
+
+Based on our decision to select certain variables, we will use the `SELECT` command from `dply` package to create a smaller data frame which contains only the variables of interest.
+```{r, message=FALSE, warning=FALSE}
+csb.df %>%
+  select(CONTROL, ST_FIPS, FAMINC, FEMALE, MARRIED,DEP_STAT_PCT_IND, FIRST_GEN, PREDDEG, CDR3, CDR3_DENOM,PCTPELL, PCTFLOAN, 
+         DEBT_N, CUML_DEBT_N, HIGHDEG, REGION, NUMBRANCH, CCBASIC, CURROPER, YEAR) %>%
+  {.} -> csb.vars.df
+```
+
+
+To prepare data for association rules, we need to create factor varibles from all of the numeric variables we chose to work with. Because firstly we need to conver the variable type into `factor` and then use the `make.ntiles` function, here we defined a new function `numeric_to_factor` to combine two steps together.
+```{r, message=FALSE, warning=FALSE}
+make.ntiles = function (inputvar, n) {
+  inputvar %>%
+    quantile(.,
+             (1/n) * 1:(n-1),
+             na.rm=TRUE
+             ) %>%
+    c(-Inf, ., Inf) %>%
+    cut(inputvar,
+        breaks=.,
+        paste("Q", 1:n, sep="")
+        )
+}
+
+numeric_to_factor <- function(var){
+  var.temp= as.numeric(var)
+  var.F=make.ntiles(var.temp, 10)
+  return(var.F)
+}
+
+csb.temp.df %>%
+  mutate(FAMINC=numeric_to_factor(FAMINC),
+         FEMALE=numeric_to_factor(FEMALE),
+         MARRIED=numeric_to_factor(MARRIED),
+         DEP_STAT_PCT_IND=numeric_to_factor(DEP_STAT_PCT_IND),
+         FIRST_GEN=numeric_to_factor(FIRST_GEN),
+         CDR3=numeric_to_factor(CDR3),
+         CDR3_DENOM=numeric_to_factor(CDR3_DENOM),
+         PCTPELL=numeric_to_factor(PCTPELL),
+         PCTFLOAN=numeric_to_factor(PCTFLOAN),
+         DEBT_N=numeric_to_factor(DEBT_N),
+         CUML_DEBT_N=numeric_to_factor(CUML_DEBT_N),
+         NUMBRANCH=as.factor(NUMBRANCH),
+         YEAR = as.factor(YEAR),
+         CURROPER = as.factor(CURROPER),
+         CCBASIC = as.factor(CCBASIC),
+         HIGHDEG = as.factor(HIGHDEG)
+        ) %>%
+  {.} -> csb.fact.df
+```
+For the last step, we need to make sure that all variables we used here are categorical variables using following code:
+```{r}
+csb.fact.df %>%
+  sapply(as.factor) %>%
+  as.data.frame %>%
+  {.} -> csb.var.df
+```
+
+The data frame `csb.var.df` contains our final set of variables, ready for further analysis.
+
+The next step is to create the association rules. We will use the apriori function from the arules package.
+
+```{r}
+rules = apriori(csb.var.df, parameter = list(supp = 0.1, conf = 0.7, minlen = 2, maxlen = 10))
+print(paste0("Number of rules:", length(rules)))
+
+```
+
+The below indicates how other variables are associated with variable Female, the percentage of students in the institution who are female. 
+
+The first code describes the association rules between FEMALE=Q1 and other variables. 
+```{r}
+csb.var.df %>%
+ select(FEMALE, ST_FIPS, FAMINC, MARRIED,DEP_STAT_PCT_IND, FIRST_GEN, CDR3, CDR3_DENOM,PCTPELL, PCTFLOAN,
+        DEBT_N, CUML_DEBT_N, HIGHDEG, REGION, NUMBRANCH, CCBASIC, CURROPER, YEAR) %>%
+ {.} -> csb.var.female.df
+
+apriori.appearance = list(rhs=c("FEMALE=Q1"), default='lhs')
+apriori.parameter = list(support=0.01, confidence=0.07, minlen=2, maxlen=10)
+apriori.control= list(verbose=FALSE)
+
+rules.female = apriori(csb.var.female.df,
+                       parameter=apriori.parameter,
+                       appearance=apriori.appearance,
+                       control = apriori.control)
+
+inspect(sort(rules.female, by='lift')[1:3])
+```
+The output indicates that the presence of NUMBRANCH=142, or MARRIED=Q8 and NUMBRANCH=142, or DEBT_N=Q10 and NUMBRANCH=142 makes it more likely that FEMALE=Q1; NUMBRANCH=142, MARRIED=Q8 and DEBT_N=Q10 are highly related to FEMALE=Q1. 
+
+The sencond code describes the association rules between FEMALE=Q2 and other variabels.
+```{r}
+apriori.appearance = list(rhs=c("FEMALE=Q2"), default='lhs')
+apriori.parameter = list(support=0.01, confidence=0.07, minlen=2, maxlen=10)
+apriori.control= list(verbose=FALSE)
+
+rules.female = apriori(csb.var.female.df,
+                       parameter=apriori.parameter,
+                       appearance=apriori.appearance,
+                       control = apriori.control)
+
+inspect(sort(rules.female, by='lift')[1:3])
+```
+The lift results are all more than one. This indicates that CCBASIC=22, CURROPER=1 and YEAR=2014 are highly associated with FEMALE=2. When CCBASIC=22 and CURROPER=1, it is more likely that FEMALE=Q2; when CCBASIC=22, CURROPER=1 and YEAR=2-14, it is more likely that FEMALE=Q2. CCBASIC=22 makes it more likely that FEMALE=Q2. 
+
+
+The third code describes the association rules between FEMALE=Q2 and other variabels.
+```{r}
+apriori.appearance = list(rhs=c("FEMALE=Q3"), default='lhs')
+apriori.parameter = list(support=0.01, confidence=0.07, minlen=2, maxlen=10)
+apriori.control= list(verbose=FALSE)
+
+rules.female = apriori(csb.var.female.df,
+                       parameter=apriori.parameter,
+                       appearance=apriori.appearance,
+                       control = apriori.control)
+
+inspect(sort(rules.female, by='lift')[1:3])
+```
+The results of lift are all more than one, which means that FAMINC=Q10, DEP_STAT_PCT_IND=Q1, FIRST_GEN=Q1, CURROPER=1 and YEAR=2014 are highly related to FEMALE=Q3. Among all the rules. FAMINC=Q10, DEP_STAT_PCT_IND=Q1 and FIRST_GEN=Q1 makes FEMALE=Q3 more likely to happen. 
