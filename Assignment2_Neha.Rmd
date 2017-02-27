@@ -1,0 +1,185 @@
+---
+title: "MA 710 - Assignment 2"
+author: "Chengdong Liang"
+date: "February 22, 2017"
+output: html_document
+---
+
+## Loading libraries and data
+
+```{r, message=FALSE, warning=FALSE}
+library(dplyr)
+library(readr)
+library(arules)
+```
+
+We read in the csv file `MERGED2014_15_PP.csv` into the data frame `csb.df` using the `read_csv` function of the `readr` package.
+
+```{r,message=FALSE, warning=FALSE}
+
+year = 2000
+csb.df = data.frame()
+
+for (i in c(1:15)) {
+  if (i<10){
+    num = paste0("0", i, sep="")
+  }
+    else {
+      num = i
+    }
+  file_name = paste0('MERGED',year,"_", num, "_PP.csv", sep="")
+  csb.temp.df = read_csv(paste0('/Users/akhoury/Desktop/MA 710/Assignment-1/CollegeScorecard_Raw_Data/', file_name))
+  csb.temp.df$YEAR = year
+  csb.df = rbind(csb.df, csb.temp.df)
+  year = year+1
+  
+}
+
+```
+
+## Data cleaning and variable modification
+
+Based on our decision to select certain variables, we will use the `SELECT` command from `dply` package to create a smaller data frame which contains only the variables of interest.
+
+```{r, message=FALSE, warning=FALSE}
+csb.df %>%
+  select(CONTROL, ST_FIPS, FAMINC, FEMALE, MARRIED,DEP_STAT_PCT_IND, FIRST_GEN, PREDDEG, 
+         CDR3, CDR3_DENOM,PCTPELL, PCTFLOAN, DEBT_N, CUML_DEBT_N, HIGHDEG, REGION, NUMBRANCH, 
+         CCBASIC, CURROPER, YEAR) %>%
+  {.} -> csb.vars.df
+```
+
+To prepare data for association rules, we need to create factor varibles from all of the numeric variables we chose to work with. Because firstly we need to conver the variable type into `factor` and then use the `make.ntiles` function, here we defined a new function `numeric_to_factor` to combine two steps together.
+
+```{r, message=FALSE, warning=FALSE}
+make.ntiles = function (inputvar, n) {
+  inputvar %>%
+    quantile(.,
+             (1/n) * 1:(n-1),
+             na.rm=TRUE
+             ) %>%
+    c(-Inf, ., Inf) %>%
+    cut(inputvar,
+        breaks=.,
+        paste("Q", 1:n, sep="")
+        )
+}
+
+numeric_to_factor <- function(var){
+  var.temp= as.numeric(var)
+  var.F=make.ntiles(var.temp, 10)
+  return(var.F)
+}
+
+csb.vars.df %>%
+  mutate(FAMINC=numeric_to_factor(FAMINC),
+         FEMALE=numeric_to_factor(FEMALE),
+         MARRIED=numeric_to_factor(MARRIED),
+         DEP_STAT_PCT_IND=numeric_to_factor(DEP_STAT_PCT_IND),
+         FIRST_GEN=numeric_to_factor(FIRST_GEN),
+         CDR3=numeric_to_factor(CDR3),
+         CDR3_DENOM=numeric_to_factor(CDR3_DENOM),
+         PCTPELL=numeric_to_factor(PCTPELL),
+         PCTFLOAN=numeric_to_factor(PCTFLOAN),
+         DEBT_N=numeric_to_factor(DEBT_N),
+         CUML_DEBT_N=numeric_to_factor(CUML_DEBT_N),
+         NUMBRANCH=as.factor(NUMBRANCH),
+         YEAR = as.factor(YEAR),
+         CURROPER = as.factor(CURROPER),
+         CCBASIC = as.factor(CCBASIC),
+         HIGHDEG = as.factor(HIGHDEG)
+        ) %>%
+  {.} -> csb.fact.df
+```
+
+For the last step, we need to make sure that all variables we used here are categorical variables using following code:
+
+```{r}
+csb.fact.df %>%
+  sapply(as.factor) %>%
+  as.data.frame %>%
+  {.} -> csb.var.df
+```
+
+The data frame `csb.var.df` contains our final set of variables, ready for further analysis.
+
+Let's have a look at the structure of the dataframe `csb.var.df` using the `glimpse` function.
+```{r}
+glimpse(csb.var.df)
+```
+
+## Association rules for the `PREDDEG` target variable
+
+Drop the other two target variables `CONTROL` and `FEMALE`
+
+```{r}
+csb.var.df %>%
+  select(-CONTROL,-FEMALE) %>%
+  {.} -> csb.deg.df
+```
+
+The next step is to create the association rules for the `PREDDEG` variable. We will use the apriori function from the arules package. The parameters of the function are set to define the minimum support, minimum confidence, minimum length and maximum length for the association rules.
+
+```{r}
+apriori.appearance = list(rhs=c('PREDDEG=0','PREDDEG=1','PREDDEG=2','PREDDEG=3','PREDDEG=4' ),default='lhs')
+apriori.parameter = list(support=0.01,confidence=0.07, minlen=2, maxlen=10)
+apriori.control = list(verbose=FALSE)
+rules.deg = apriori(csb.deg.df, parameter=apriori.parameter, appearance=apriori.appearance, control=apriori.control)
+```
+
+Let's first examine the number of rules we found for the parameters specified above.
+
+```{r}
+length(rules.deg)
+```
+
+The output tells that the function found 6863 association rules for the variable `PREDDEG`.
+
+### Association rules sorted by support
+
+```{r}
+rules.by.support.deg = sort(rules.deg, by='support')
+```
+
+```{r}
+inspect(rules.by.support.deg[1:3])
+```
+
+Rule 1: The first rule tells us that 39% of all institutions are predominantly Certificate-degree institutions with missing values for the variable `CURROPER`.
+
+Rule 2: The first rule tells us that 39% of all institutions are predominantly Certificate-degree institutions with missing values for the variable `CCBASIC`.
+
+Rule 3: The first rule tells us that 39% of all institutions are predominantly Certificate-degree institutions with missing values for the variables `CURROPER` and `CCBASIC`.
+
+### Association rules sorted by confidence
+
+```{r}
+rules.by.conf.deg = sort(rules.deg, by='confidence')
+``` 
+
+```{r}
+inspect(rules.by.conf.deg[1:3])
+```
+
+Rule 1: The first rule tells us that all those institutions in Puerto Rico (`ST_FIPS` = 72) in which the highest degree awarded is a Certificate degree are also predominantly certificate-degree granting institutions.
+
+Rule 2: The second rule tells us that all those institutions in Connecticut (`ST_FIPS` = 9) in which the highest degree awarded is a Certificate degree are also predominantly certificate-degree granting institutions.
+
+Rule 3: The third rule tells us that all those institutions in New Jersey (`ST_FIPS` = 34) in which the highest degree awarded is a Certificate degree are also predominantly certificate-degree granting institutions.
+
+### Association rules sorted by lift
+
+```{r}
+rules.by.lift.deg = sort(rules.deg, by='lift')
+```
+
+```{r}
+inspect(rules.by.lift.deg[1:3])
+```
+
+Rule 1: The first rule tells us that the number of unclassified institutions have the highest number of student in the cumulative debt cohort and are non-degree granting is 23% higher that we would expect if the they were independent.
+
+Rule 2: The second rule tells us that the number of unclassified institutions have the highest number of student in the median debt cohort and are non-degree granting is 23% higher that we would expect if the they were independent.
+
+Rule 3: The third rule tells us that the number of unclassified institutions have the highest number of student in the cumulative debt cohort, highest number of student in the median debt cohort and are non-degree granting is 23% higher that we would expect if the they were independent.
+
