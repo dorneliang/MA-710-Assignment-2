@@ -147,9 +147,9 @@ inspect(rules.by.support.deg[1:3])
 
 Rule 1: The first rule tells us that 39% of all institutions are predominantly Certificate-degree institutions with missing values for the variable `CURROPER`.
 
-Rule 2: The first rule tells us that 39% of all institutions are predominantly Certificate-degree institutions with missing values for the variable `CCBASIC`.
+Rule 2: The second rule tells us that 39% of all institutions are predominantly Certificate-degree institutions with missing values for the variable `CCBASIC`.
 
-Rule 3: The first rule tells us that 39% of all institutions are predominantly Certificate-degree institutions with missing values for the variables `CURROPER` and `CCBASIC`.
+Rule 3: The third rule tells us that 39% of all institutions are predominantly Certificate-degree institutions with missing values for the variables `CURROPER` and `CCBASIC`.
 
 ### Association rules sorted by confidence
 
