@@ -177,9 +177,9 @@ rules.by.lift.deg = sort(rules.deg, by='lift')
 inspect(rules.by.lift.deg[1:3])
 ```
 
-Rule 1: The first rule tells us that the number of unclassified institutions have the highest number of student in the cumulative debt cohort and are non-degree granting is 23% higher that we would expect if the they were independent.
+Rule 1: The first rule tells us that the number of unclassified institutions that have the highest number of student in the cumulative debt cohort and are non-degree granting is 23% higher that we would expect if the they were independent.
 
-Rule 2: The second rule tells us that the number of unclassified institutions have the highest number of student in the median debt cohort and are non-degree granting is 23% higher that we would expect if the they were independent.
+Rule 2: The second rule tells us that the number of unclassified institutions that have the highest number of student in the median debt cohort and are non-degree granting is 23% higher that we would expect if the they were independent.
 
-Rule 3: The third rule tells us that the number of unclassified institutions have the highest number of student in the cumulative debt cohort, highest number of student in the median debt cohort and are non-degree granting is 23% higher that we would expect if the they were independent.
+Rule 3: The third rule tells us that the number of unclassified institutions that have the highest number of student in the cumulative debt cohort, highest number of student in the median debt cohort and are non-degree granting is 23% higher that we would expect if the they were independent.
 
