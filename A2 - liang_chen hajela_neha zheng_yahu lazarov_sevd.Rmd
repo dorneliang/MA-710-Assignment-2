@@ -243,7 +243,7 @@ Rule 3: The third rule tells us that the number of unclassified institutions tha
 
 ## Association rules for the `FEMALE` target variable
 
-### Association rules sorted by lift
+
 
 The first code describes the association rules between FEMALE=Q1 and other variables. 
 ```{r}
@@ -263,6 +263,9 @@ rules.female = apriori(csb.var.female.df,
 
 inspect(sort(rules.female, by='lift')[1:3])
 ```
+
+### Association rules sorted by confidence
+
 The output indicates that the presence of NUMBRANCH=142, or MARRIED=Q8 and NUMBRANCH=142, or DEBT_N=Q10 and NUMBRANCH=142 makes it more likely that FEMALE=Q1; NUMBRANCH=142, MARRIED=Q8 and DEBT_N=Q10 are highly related to FEMALE=Q1. 
 ```{r}
 csb.var.df %>%
@@ -307,7 +310,7 @@ inspect(sort(rules.female, by='support')[1:3])
 ```
 The output indicates that the probability of YEAR=2014 and FEMALE=Q1 is 0.0826; the probability of YEAR=2014 and FEMALE=Q2 is 0.0824 and the probability of YEAR=2014 and FEMALE=Q3 is 0.0824. The association rules are not strong enough between FEMALE and YEAR as well as FEMALE and other variables. 
 
-
+### Association rules sorted by lift
 
 Since lift is more than 1 in many association rules, the output are sorted by lift to see how FEMALE=Q2 and FEMALE=Q3 related to other variables. 
 ```{r}
