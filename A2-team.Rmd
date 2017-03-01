@@ -1,0 +1,156 @@
+---
+title: "MA 710 - Assignment 2"
+author: "MA 710 - Dataminers"
+date: "February 22, 2017"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+## 1. Introduction
+
+The data we are working on is provided by the U.S department of Education. The data set contains information of College Scorecard, federal financial aid and students' earning records. The data set can help to understand the information of getting federal financial and have insights on the school performance as well as students' long term development. The data set contains 1743 variables which are organized into 10 categories. The categories cover a range of topics:
+
+ * Root - basic information such as School Id and location.
+
+ * School - basic descriptive information such as degree types, number of branches, Carnegie classification, Public or Private etc.
+
+ * Academics - types of academics available at the school.
+
+ * Admissions - admission statistics such as acceptance rate and SAT/ACT scores.
+
+ * Student - descriptions of the students including the number of undergraduate students, part-time or full-time students, share of first generation students.
+
+ * Cost - information  cost for students such as average cost of attendance, tuition and fees, and average net price for institutions by income level.
+
+ * Aid - the amount of debt a student can take on while attending the college, typical monthly loan payments, and the percentage of Pell Grant Recipients.
+
+ * Repayment - descriptions of how successful students are at repaying their debts which is measured by cohort default rate and repayment rate.
+
+ * Completion - information on the completion and retention rates for first time and full time students.
+
+ * Earnings - statistics on average and median earnings as well as share of former students' earning more than $25,000. 
+
+
+Our main objective for the project is to perform clustering analysis of the provided dataset. There are a number of goals that we want to achieve - apply different clustering algorithms, assess the algorithms performance and perform parametric adjustment if necessary, creating association rules to describe the clusters and visualizing the results.
+
+
+## Data Preparation
+
+### Loading libraries and data
+```{r, message=FALSE, warning=FALSE}
+library(dplyr)
+library(readr)
+library(arules)
+library(cluster)
+library(knitr)
+knitr::opts_chunk$set(cache = TRUE, warning = FALSE, 
+                      message = FALSE, cache.lazy = FALSE)
+```
+
+We read in the csv file `MERGED2014_15_PP.csv` into the data frame `csb.df` using the `read_csv` function of the `readr` package.
+
+```{r,message=FALSE, warning=FALSE, cache=TRUE}
+
+file_name = "MERGED2014_15_PP.csv"
+csb.temp.df = read_csv(paste0('C:/Users/sevda/Documents/Bentley/710/Assignment 1/CollegeScorecard_Raw_Data/CollegeScorecard_Raw_Data/', file_name), na = c("", "NA", "NULL", "PrivacySuppressed"))
+
+```
+
+### Data cleaning and variable modification
+
+Based on our decision to select certain variables, we will use the `SELECT` command from `dply` package to create a smaller data frame which contains only the variables of interest.
+```{r, message=FALSE, warning=FALSE}
+csb.df %>%
+  select(CONTROL, ST_FIPS, FAMINC, FEMALE, MARRIED, FIRST_GEN, PREDDEG, CDR3, PCTFLOAN, 
+         DEBT_N, REGION, NUMBRANCH, CCBASIC, CURROPER) %>%
+  {.} -> csb.vars.df
+```
+
+
+To prepare data for association rules, we need to create factor varibles from all of the numeric variables we chose to work with. Because firstly we need to conver the variable type into `factor` and then use the `make.ntiles` function, here we defined a new function `numeric_to_factor` to combine two steps together.
+```{r, message=FALSE, warning=FALSE}
+make.ntiles = function (inputvar, n) {
+  inputvar %>%
+    quantile(.,
+             (1/n) * 1:(n-1),
+             na.rm=TRUE
+             ) %>%
+    c(-Inf, ., Inf) %>%
+    cut(inputvar,
+        breaks=.,
+        paste("Q", 1:n, sep="")
+        )
+}
+
+numeric_to_factor <- function(var){
+  var.temp= as.numeric(var)
+  var.F=make.ntiles(var.temp, 3)
+  return(var.F)
+}
+
+csb.vars.df %>%
+  mutate(CONTROL = as.factor(CONTROL),
+         ST_FIPS = as.factor(ST_FIPS),
+         FAMINC=numeric_to_factor(FAMINC),
+         FEMALE=numeric_to_factor(FEMALE),
+         MARRIED=numeric_to_factor(MARRIED),
+         FIRST_GEN=numeric_to_factor(FIRST_GEN),
+         PREDDEG = as.factor(PREDDEG),
+         CDR3=numeric_to_factor(CDR3),
+         PCTFLOAN=numeric_to_factor(PCTFLOAN),
+         DEBT_N=numeric_to_factor(DEBT_N),
+         REGION = as.factor(REGION),
+         NUMBRANCH=as.factor(NUMBRANCH),
+         CCBASIC = as.factor(CCBASIC),
+         CURROPER = as.factor(CURROPER)
+        ) %>%
+  {.} -> csb.fact.df
+```
+For the last step, we need to make sure that all variables we used here are categorical variables using following code:
+```{r}
+csb.fact.df %>%
+  sapply(as.factor) %>%
+  as.data.frame %>%
+  {.} -> csb.var.df
+```
+
+The data frame `csb.var.df` contains our final set of variables, ready for further analysis.
+
+## Cluster Analysis
+
+### PAM clustering algorithm
+
+```{r}
+pam.result = pam(x=csb.var.df, k=3) 
+csb.var.df$CLUSTER = factor(pam.result$cluster)
+```
+
+
+
+
+
+## Association rules for the `CLUSTER` target variable
+
+
+
+```{r, warning=FALSE}
+
+
+apriori.appearance = list(rhs=c('CLUSTER_ID=1','CLUSTER_ID=2', "CLUSTER_ID=3"), default='lhs')
+apriori.parameter = list(support=0.01, confidence=0.07, minlen=2, maxlen=4)
+apriori.control = list(verbose=FALSE)
+
+rules.control = apriori(csb.var.df, parameter=apriori.parameter, appearance=apriori.appearance, control=apriori.control)
+
+```
+
+### Association rules sorted by lift
+
+
+
+```{r}
+inspect(sort(rules.control, by='lift')[1:3])
+
+```
+
