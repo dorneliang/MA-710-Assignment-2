@@ -1,0 +1,340 @@
+---
+title: "MA 710 - Assignment 2"
+author: "MA 710 - Dataminers"
+date: "February 22, 2017"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+## 1. Introduction
+
+The data we are working on is provided by the U.S department of Education. The data set contains information of College Scorecard, federal financial aid and students' earning records. The data set can help to understand the information of getting federal financial and have insights on the school performance as well as students' long term development. The data set contains 1743 variables which are organized into 10 categories. The categories cover a range of topics:
+
+ * Root - basic information such as School Id and location.
+
+ * School - basic descriptive information such as degree types, number of branches, Carnegie classification, Public or Private etc.
+
+ * Academics - types of academics available at the school.
+
+ * Admissions - admission statistics such as acceptance rate and SAT/ACT scores.
+
+ * Student - descriptions of the students including the number of undergraduate students, part-time or full-time students, share of first generation students.
+
+ * Cost - information  cost for students such as average cost of attendance, tuition and fees, and average net price for institutions by income level.
+
+ * Aid - the amount of debt a student can take on while attending the college, typical monthly loan payments, and the percentage of Pell Grant Recipients.
+
+ * Repayment - descriptions of how successful students are at repaying their debts which is measured by cohort default rate and repayment rate.
+
+ * Completion - information on the completion and retention rates for first time and full time students.
+
+ * Earnings - statistics on average and median earnings as well as share of former students' earning more than $25,000. 
+
+
+Our main objective for the project is to perform clustering analysis of the provided dataset. There are a number of goals that we want to achieve - apply different clustering algorithms, assess the algorithms performance and perform parametric adjustment if necessary, creating association rules to describe the clusters and visualizing the results.
+
+
+## Data Preparation
+
+### Loading libraries and data
+```{r, message=FALSE, warning=FALSE}
+library(dplyr)
+library(readr)
+library(arules)
+library(cluster)
+library(clValid)
+#library(cluster.status)
+library(ggplot2)
+library(knitr)
+knitr::opts_chunk$set(cache = TRUE, warning = FALSE, 
+                      message = FALSE, cache.lazy = FALSE)
+```
+
+We read in the csv file `MERGED2014_15_PP.csv` into the data frame `csb.df` using the `read_csv` function of the `readr` package.
+
+```{r,message=FALSE, warning=FALSE, cache=TRUE}
+
+file_name = "MERGED2014_15_PP.csv"
+csb.df = read_csv(paste0('C:/Users/sevda/Documents/Bentley/710/Assignment 1/CollegeScorecard_Raw_Data/CollegeScorecard_Raw_Data/', file_name), na = c("", "NA", "NULL", "PrivacySuppressed"))
+
+```
+
+### Data cleaning and variable modification
+
+Based on our decision to select certain variables, we will use the `SELECT` command from `dply` package to create a smaller data frame which contains only the variables of interest.
+```{r, message=FALSE, warning=FALSE}
+csb.df %>%
+  select(CONTROL, ST_FIPS, FAMINC, FEMALE, MARRIED, FIRST_GEN, PREDDEG, CDR3, PCTFLOAN, 
+         DEBT_N, REGION, NUMBRANCH, CCBASIC, CURROPER) %>%
+  {.} -> csb.vars.df
+
+```
+
+To prepare data fo the cluster analysis, we need to convert the variables into numeric.
+
+
+```{r}
+csb.vars.df %>%
+  sapply(as.numeric) %>%
+  as.data.frame %>%
+  mutate(CONTROL = as.vector(scale(CONTROL)),
+         ST_FIPS = as.vector(scale(ST_FIPS)),
+         FAMINC = as.vector(scale(FAMINC)),
+         FEMALE = as.vector(scale(FEMALE)),
+         MARRIED = as.vector(scale(MARRIED)),
+         FIRST_GEN = as.vector(scale(FIRST_GEN)),
+         PREDDEG = as.vector(scale(PREDDEG)),
+         CDR3 = as.vector(scale(CDR3)),
+         PCTFLOAN = as.vector(scale(PCTFLOAN)),
+         DEBT_N = as.vector(scale(DEBT_N)),
+         REGION = as.vector(scale(REGION)),
+         NUMBRANCH = as.vector(scale(NUMBRANCH)),
+         CCBASIC = as.vector(scale(CCBASIC)),
+         CURROPER = as.vector(scale(CURROPER))) %>%
+  {.} -> csb.var.numeric.df
+
+
+```
+
+To prepare data for association rules, we need to create another data set with factor varibles from all of the numeric variables we chose to work with. First, we need to conver the variable type into `factor` and then use the `make.ntiles` function, here we defined a new function `numeric_to_factor` to combine two steps together.
+
+```{r, message=FALSE, warning=FALSE}
+make.ntiles = function (inputvar, n) {
+  inputvar %>%
+    quantile(.,
+             (1/n) * 1:(n-1),
+             na.rm=TRUE
+             ) %>%
+    c(-Inf, ., Inf) %>%
+    cut(inputvar,
+        breaks=.,
+        paste("Q", 1:n, sep="")
+        )
+}
+
+numeric_to_factor <- function(var){
+  var.temp= as.numeric(var)
+  var.F=make.ntiles(var.temp, 3)
+  return(var.F)
+}
+
+csb.vars.df %>%
+  mutate(CONTROL = as.factor(CONTROL),
+         ST_FIPS = as.factor(ST_FIPS),
+         FAMINC=numeric_to_factor(FAMINC),
+         FEMALE=numeric_to_factor(FEMALE),
+         MARRIED=numeric_to_factor(MARRIED),
+         FIRST_GEN=numeric_to_factor(FIRST_GEN),
+         PREDDEG = as.factor(PREDDEG),
+         CDR3=numeric_to_factor(CDR3),
+         PCTFLOAN=numeric_to_factor(PCTFLOAN),
+         DEBT_N=numeric_to_factor(DEBT_N),
+         REGION = as.factor(REGION),
+         NUMBRANCH=as.factor(NUMBRANCH),
+         CCBASIC = as.factor(CCBASIC),
+         CURROPER = as.factor(CURROPER)
+        ) %>%
+  {.} -> csb.fact.df
+```
+
+For the last step, we need to make sure that all variables we used here are categorical variables using following code:
+
+```{r}
+csb.fact.df %>%
+  sapply(as.factor) %>%
+  as.data.frame %>%
+  {.} -> csb.var.df
+```
+
+The data frame `csb.var.df` contains our final set of variables, ready for further analysis with assiciation tules and the data frame csb.var.numeric.df contains our final set of variables converted to numeric and ready for use with the cluster analysis.
+
+## Cluster Analysis
+
+### PAM clustering algorithm run through CLARA function
+
+#### CLARA algorithm
+
+Because of the large number of observations in the data set (105,963), we need to use the CLARA function in order to perform the PAM clustering algorthm. The PAM algorithm limits the number of observations to 65,532 which is way below the number of rows in our data set. The CLARA functions allows for partitioning of the data set. With smaller partitions, it is feasible to perform the PAM clustering. We will run the CLARA function with three parameters - the first one is our data set, the second parameter is the number of clusters and the third parameter is the correct.d which indicates that there are "na"" values in the data frame and the algorithm will use the correct formula for performing the distance computation.
+
+Before we apply the algorithm, we need to choose the right number of clusters for our data frame. For that purpose, we will use the clValid function and will check for number of clusters between 2 and 10.
+
+```{r}
+
+clValid.result = clValid(csb.var.numeric.df, nClust=2:10, clMethods=c("clara"), validation='internal', verbose=TRUE) 
+print(summary(clValid.result))
+```
+
+When we choose the number of clusters, we are looking to maximize Dunn (which values are from 0 to infinity), to minimize Connectivity (which values ranges from 0 to infinity) and to maximize the Silhouette (which has values between 0 to 1).  Based on the results, the best option for number of clusters is 2. We will use the CLARA clustering algorithm with number of cluster 2.
+
+
+```{r}
+#pam.result = pam(x=csb.var.df, k=3) 
+#csb.var.df$CLUSTER = factor(pam.result$cluster)
+
+clara.result <- clara(x=csb.var.df, 2, correct.d = TRUE)
+print(clara.result)
+print(clara.result$clusinfo)
+
+```
+
+Based on the results we can see that there are two clusters being formed. The total number of observations used in CLARA is below the total number of observations in the data set and the reason is CLARA performs sampling of the data set. Our algrotihm has also generated the clustering vector which contains the custer id for each of the observations. The question that we need to explore is whether the number of clusters which was initially selected (cluster = 2) is the right number to work with. In order to assess the result from the algorithm, we will look at the Silhouette's graphs.
+
+
+*Partitioning around medoids to estimate the number of clusters using the pamk function in the fpc package*
+
+```{r}
+plot(clara.result)
+
+```
+
+From the Silhouette graph, we can see that both clusters are relatively weak with score around 0.4 And from plotting the clusters, it is noticable how much overlaping both clusters have.  
+
+One reason for the weak clustering results is the presence of missing values. If we keep the missing values in the data frame, we keep all of the observations in the data frame which affects the selection of clustering algorithms. Most algorithms gave limitations of the number of observations they are able to work with (such as PAM) and other clustering algorithms are not able to work with missing values (such as kmeans). CLARA, as one of the few algorithms capable of working with large number of observations, does not give satisfactory results in terms of strong clusters. For these reasons, we wikk remove the missing values in the data frame.To perform the omittion of the "na" values, we will use IDPmisc pachage and the function NARV.omit.
+
+
+```{r}
+require(IDPmisc)
+
+csb.var.omit.na.df = NaRV.omit(csb.var.numeric.df)
+```
+
+After we have the missing values, being omitted, we will perform the clValid method again for the kmeans, pam and clara method in order to find what is the best number of clusters for each algorithm.
+
+
+```{r}
+
+clValid.result = clValid(csb.var.omit.na.df, nClust=2:13, clMethods=c("kmeans","pam","clara"), validation='internal', verbose=TRUE) 
+print(summary(clValid.result))
+```
+
+When we choose the number of clusters, we are looking to maximize Dunn (which values are from 0 to infinity), to minimize Connectivity (which values ranges from 0 to infinity) and to maximize the Silhouette (which has values between 0 to 1).  Based on the results the best number of clusters for each algorithm is: kmeans (n = 2), pam (n = 2), clara (n = 4)
+
+Since kmeans gives the best results for Connectivity, Dunn and Silhouette when the number of clusters is 2, we will use kmeans to build the clusters.
+
+
+```{r}
+kmeans.result = kmeans(csb.var.omit.na.df, centers=2)
+
+csb.var.omit.na.df$CLUSTER = kmeans.result$cluster
+
+print(kmeans.result$centers)
+```
+
+As a next step, we will build association rules in order to explore how the observations are formed into clusters.
+
+## Association rules for the `CLUSTER` target variable
+
+We will use the apriori function in order to build the association rules. Before that, we will remove the missing values from our data frame with the factor variables and will add a new factor variable called clusters. In this way we will have a data frame with identical observations as the csb.var.omit.na.df but with all variables being factor.
+
+We will first try to describe the association rules that are related to cluster #1.
+
+
+```{r, warning=FALSE}
+
+csb.var.cleaned.df = NaRV.omit(csb.var.df)
+csb.var.cleaned.df$CLUSTER = as.factor(kmeans.result$cluster)
+
+apriori.appearance = list(rhs=c('CLUSTER=1'), default='lhs')
+apriori.parameter = list(support=0.01, confidence=0.07, minlen=2, maxlen=4)
+apriori.control = list(verbose=FALSE)
+
+rules.control = apriori(csb.var.cleaned.df, parameter=apriori.parameter, appearance=apriori.appearance, control=apriori.control)
+
+```
+
+### Association rules sorted by support
+
+
+
+```{r}
+inspect(sort(rules.control, by='support')[1:20])
+
+```
+
+We can see that NumBRANCH (number of branches) and CURROPER (whether the college is currently operating) are often seen in the most common association rules having on the right hand side CLUSTER = 1. 
+
+For example Rule #3 shows that 44% of all the observations has 1 number of branches, are currently operating and are in cluster 1. From the observations that have 1 branch and are currently operating, 75% are in cluster 1. Based on the lift information, we can conclude that the number of colleges in cluster 1 under the conditions (NUMBRANCH = 1 and CURROPER = 1) is 49% higher than the expected number of colleges in cluster 1 if we assume the conditions are independent.
+
+FRomt the rules, we can see that in addition to NUMBRANCH and CURROPER, other variables are also describing the type of colleges in cluster 1. Rule 8 shows that when the family income (FAMINC) is in the highest quantile and the college is currently operating, there is 88% chance that the college is in cluster 1. Rule 9, shows that 95% of the observations when the college is Public is in Cluster 1.
+
+To sum up, cluster 1 probbaly contains most of the public colleges, which are currently operating, have 1 number of branches and are attended from students whose family income is above average. This observation corresponds to our exploratory analysis (Assignment 1) in which we found correlation between public colleges having mosly 1 number of branches as well as public colleges attracting students with higher than average family income.
+
+As a next step, we will explore Cluster 2.
+
+```{r, warning=FALSE}
+
+apriori.appearance = list(rhs=c('CLUSTER=2'), default='lhs')
+apriori.parameter = list(support=0.01, confidence=0.07, minlen=2, maxlen=4)
+apriori.control = list(verbose=FALSE)
+
+rules.control = apriori(csb.var.cleaned.df, parameter=apriori.parameter, appearance=apriori.appearance, control=apriori.control)
+
+inspect(sort(rules.control, by='support')[1:20])
+
+```
+
+We can see that CONTROL (type of college: public, private for profit, private non for profit) and CURROPER (whether the college is currently operating) are often seen in the most common association rules having on the right hand side CLUSTER = 2. 
+
+For example Rule #3 shows that 35% of all the observations are public for profit, are currently operating and are in cluster 2. From the observations thatt are public for profit and are currently operating, 95% are in cluster 2. Based on the lift information, we can conclude that the number of colleges in cluster 2 with the stated conditions (CONTROL = 3 and CURROPER = 1) is 92% higher than the expected number of colleges in cluster 2 if we assume the conditions were independent.
+
+FRomt the rules, we can see that in addition to CONTROL and CURROPER, other variables are also describing the type of colleges in cluster 2. Rule 6 shows that when the Predominant Degree (PREDDEG) is certificates and the college is private for profit, there is 98% chance that the college is in cluster 2. Rule 7, shows that 98% of the observations when the college has percent of female students above average and the college is private for profit, then it is in Cluster 2.
+
+To sum up, cluster 2 probbaly contains most of the private for profit colleges, which are currently operating, have high percent of female students.
+
+Now we will visually present the clusters. We will use the most common variables which describe the clusters based on teh association rules - CONTROL, NUMBRANCH, FAMINC, FEMALE, PREDDEG. Since CURROPER has the same value of 1 for both clusters, we won't use this variable for visualization purposes. 
+
+### Visualization
+
+```{r}
+csb.var.omit.na.df$CLUSTER = kmeans.result$cluster
+
+csb.var.cleaned.df %>% 
+  ggplot(aes(x= CONTROL, y=NUMBRANCH)) + 
+  geom_point(aes(color=CLUSTER, size=2)) + 
+  guides(size=FALSE)
+
+```
+
+```{r}
+csb.var.omit.na.df$CLUSTER = kmeans.result$cluster
+
+csb.var.cleaned.df %>% 
+  ggplot(aes(x= PREDDEG, y=FAMINC)) + 
+  geom_point(aes(color=CLUSTER, size=2)) + 
+  guides(size=FALSE)
+
+```
+
+
+KMeans
+
+```{r}
+require(IDPmisc)
+
+csb.var.omit.na.df = NaRV.omit(csb.var.df)
+
+mydata <- csb.var.omit.na.df
+
+wss <- (nrow(mydata)-1)*sum(apply(csb.var.omit.na.df,2,var))
+  for (i in 2:15) wss[i] <- sum(kmeans(mydata,
+                                       centers=i)$withinss)
+plot(1:15, wss, type="b", xlab="Number of Clusters",
+     ylab="Within groups sum of squares")
+
+```
+
+
+
+*Sum of Square Erros (SSE) scree plot*
+
+```{r}
+wss <- (nrow(csb.var.omit.na.df)-1)*sum(apply(csb.var.omit.na.df,2,var))
+print(head(wss))
+  for (i in 2:15) wss[i] <- sum(kmeans(csb.var.omit.na.df,i)$withinss)
+plot(1:15, wss, type="b", xlab="Number of Clusters",
+     ylab="Within groups sum of squares")
+
+```
+
+
