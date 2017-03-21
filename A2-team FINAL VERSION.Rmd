@@ -339,7 +339,7 @@ print(summary(clValid.result))
 
 When we choose the number of clusters, we are looking to maximize Dunn (which values are from 0 to infinity), to minimize Connectivity (which values ranges from 0 to infinity) and to maximize the Silhouette (which has values between 0 to 1).  Based on the results the best number of clusters for each algorithm is: kmeans (n = 2), and clara (n = 4).
 
-(*** NEW CODE)
+(*** END NEW CODE)
 
 Since kmeans gives the best results for Connectivity, Dunn and Silhouette when the number of clusters is 2, we will use kmeans to build the clusters.
 
