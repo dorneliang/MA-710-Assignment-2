@@ -9,33 +9,11 @@ output:
 
 ## 1. Introduction
 
-The data we are working on is provided by the U.S department of Education. The data set contains information of College Scorecard, federal financial aid and students' earning records. The data set can help to understand the information of getting federal financial and have insights on the school performance as well as students' long term development. The data set contains 1743 variables which are organized into 10 categories. The categories cover a range of topics:
-
- * Root - basic information such as School Id and location.
-
- * School - basic descriptive information such as degree types, number of branches, Carnegie classification, Public or Private etc.
-
- * Academics - types of academics available at the school.
-
- * Admissions - admission statistics such as acceptance rate and SAT/ACT scores.
-
- * Student - descriptions of the students including the number of undergraduate students, part-time or full-time students, share of first generation students.
-
- * Cost - information  cost for students such as average cost of attendance, tuition and fees, and average net price for institutions by income level.
-
- * Aid - the amount of debt a student can take on while attending the college, typical monthly loan payments, and the percentage of Pell Grant Recipients.
-
- * Repayment - descriptions of how successful students are at repaying their debts which is measured by cohort default rate and repayment rate.
-
- * Completion - information on the completion and retention rates for first time and full time students.
-
- * Earnings - statistics on average and median earnings as well as share of former students' earning more than $25,000. 
-
-Our main objective for the project is to perform clustering analysis of the provided data set. There are a number of goals that we want to achieve - apply different clustering algorithms, assess the algorithms performance and perform parametric adjustment if necessary, creating association rules to describe the clusters and visualizing the results.
+The data we are working on is provided by the U.S department of Education. The data set contains information of College Scorecard, federal financial aid and students' earning records. The data set can help the students make informed educational choices by providing information on federal financial aid, school performance as well as students' long term career outcomes. The data set contains 1743 variables which are organized into 10 categories. The categories cover a broad range of topics such as school, academics, admissions, student, cost, repayment, completion and earnings.
 
 ## 2.Goals
 
-The goal of this assignment is to identify groups within the College Scorecard data set such that the colleges within those groups are similar to one another with respect to the variables of interest, but different from the colleges in another group. These groups will further be explored in detail to through association rules, that will help us better describe the features in the respective clusters.
+The goal of this assignment is to identify groups within the College Scorecard data set such that the colleges within those groups are similar to one another with respect to the variables of interest, but different from the colleges in another group. These groups will further be explored in detail through association rules, that will help us better describe the features in the respective clusters.
 
 ## 3.DataSet Description
 
@@ -469,7 +447,9 @@ labels on the edges. Since this type of plot can get easily cluttered, we select
 subrules1 <- head(sort(rules.control1, by="support"), 10)
 plot(subrules1, method="graph", control=list(type="itemsets"))
 ```
+
 The plot above shows a graph-based visualization and offers a very clear representation of the 10 rules with the highest support. 
+
 We now plot this graph-based visualization for Cluster 2.
 ```{r}
 subrules2 <- head(sort(rules.control2, by="support"), 10)
@@ -518,6 +498,8 @@ On the other hand, most of the colleges in Cluster 2 have students of either med
 Following a multi-step approach of trying three different clustering methods one after the other - DBSCAN, PAM through CLARA and K-means, our team was able to determine the best method for clustering the College Scorecard data. The selection of the final method was based on comparison of performance measures such as connectivity, Dunn and Silhouette index, across the different methods. We identified that K-means with 2 clusters was the best method to cluster our observations since it had the least connectivity and the highest Dunn and Silhouette index.
 
 Further analysis of the two clusters obtained through association rules, helped us appreciate the characteristics of each cluster. The two clusters differed greatly on the control of the institution. While Cluster 1 was comprised mainly of public colleges with students of higher than average family income, Cluster 2 denoted the private for profit colleges with a high share of female students. Visualization of the rules revealed that most of the rules had high support and high lift, but low support.
+
+
 
 
 
