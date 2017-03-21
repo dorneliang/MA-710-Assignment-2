@@ -198,6 +198,19 @@ summary(cluster0)
 ```
 Based on the statistical descriptions of 6 clusters, each cluster has different features compared to other clusters. Cluster 0 has highest values in ST_FIPS and REGION and lowest value in family income and loans. Cluster 1 is special for its highest family income and more likely to be public school, not married, and less first generation. Cluster 2 has the most first generation amount. Cluster 3 has less female and more campus brunch. Cluster 4 has more female and get highest loans. Cluster 5 has most married, higher pre degree and debt amount. 
 
+(***NEW CODE)
+
+In order to visualize the clusters which resulted from the density clustering, we will use the hullplot function.
+
+```{r}
+hullplot(clusterdata, dbscan.result)
+```
+From the plot, we can see few things that raise concern over how well the density based algorithm has clustered the data. The first part is that two of the plots almost completely overlap which is an indicator that the clusters may not be well formed. In addition, a few of the clusters, such as the cluster colored with light blue, are relatively small which may be an indicator of clusters which are combining mainly outliers of the data and which are not indicative of an actual need for an existing cluster.
+
+Based on all of the above observations, we can conclude that the DBSCAN clustering did not yield satisfactory enough results and for that reason we will move to kmeans and PAM (CLARA) clustering algorithms.
+
+(***END NEW CODE)
+
 As a next step, we will build association rules in order to explore how the observations are formed into clusters. As a next step we will perform CLARA (PAM) clustering.
 
 ### PAM clustering algorithm run through CLARA function
@@ -312,8 +325,11 @@ From the Silhouette graph, we can see that both clusters are relatively weak wit
 
 ### Selecting the final clustering method
 
-Up to this point, we explored three clustering algorithms - DBSCAN, CLARA and kmeans. The results from all the three of the algorithms were mixed and we ended up with some relatively strong clusters and a number of very weak data clusters. We will use the clValid function again in order to select the algorithm with the best result among the
+(***NEW CODE)
 
+Up to this point, we explored three clustering algorithms - DBSCAN, CLARA and kmeans. As we found out DBSCAN's clusters weren't formed in a satisfactory mannner. Two of the clusters were overlaping significantly and a number of clusters were of a very small size which suggests that these clusters may be representing outliers or just noise ffrom the data set. For that reason we will not focus on exploring further the clusters created by DBSCAN.
+
+Kmeans and CLARA also yielded some mixed results with a number of weak clusters from both algorithms. We will use the clValid function again in order to select the algorithm with the best result between kmeans and CLARA.
 
 ```{r}
 
@@ -321,7 +337,9 @@ clValid.result = clValid(csb.var.omit.na.df, nClust=2:13, clMethods=c("kmeans","
 print(summary(clValid.result))
 ```
 
-When we choose the number of clusters, we are looking to maximize Dunn (which values are from 0 to infinity), to minimize Connectivity (which values ranges from 0 to infinity) and to maximize the Silhouette (which has values between 0 to 1).  Based on the results the best number of clusters for each algorithm is: kmeans (n = 2), pam (n = 2), clara (n = 4)
+When we choose the number of clusters, we are looking to maximize Dunn (which values are from 0 to infinity), to minimize Connectivity (which values ranges from 0 to infinity) and to maximize the Silhouette (which has values between 0 to 1).  Based on the results the best number of clusters for each algorithm is: kmeans (n = 2), and clara (n = 4).
+
+(*** NEW CODE)
 
 Since kmeans gives the best results for Connectivity, Dunn and Silhouette when the number of clusters is 2, we will use kmeans to build the clusters.
 
