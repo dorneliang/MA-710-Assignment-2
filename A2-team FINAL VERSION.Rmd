@@ -196,7 +196,7 @@ summary(cluster4)
 summary(cluster5)
 summary(cluster0)
 ```
-Based on the statistical descriptions of 6 clusters, for variable control, cluster 1 is different from other 4 cluster. 
+Based on the statistical descriptions of 6 clusters, each cluster has different features compared to other clusters. Cluster 0 has highest values in ST_FIPS and REGION and lowest value in family income and loans. Cluster 1 is special for its highest family income and more likely to be public school, not married, and less first generation. Cluster 2 has the most first generation amount. Cluster 3 has less female and more campus brunch. Cluster 4 has more female and get highest loans. Cluster 5 has most married, higher pre degree and debt amount. 
 
 As a next step, we will build association rules in order to explore how the observations are formed into clusters. As a next step we will perform CLARA (PAM) clustering.
 
