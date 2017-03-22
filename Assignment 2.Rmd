@@ -50,7 +50,9 @@ This project aims to accomplish the following objectives:
 
 ### 5.1 Loading libraries
 
-We will load the `dplyr` package that contains functions for data manipulation using data frames. It allows us to order rows, select rows, select variables, modify variables and summarize variables. The `readr` library is loaded to read in the cs file. We will also load the `ggplot2` package which is a powerful plotting package that creates elegant and complex plots in R. The `magrittr` library is loaded for the piping operator `%>%`. 
+We will load the `dplyr` package that contains functions for data manipulation using data frames. It allows us to order rows, select rows, select variables, modify variables and summarize variables. The `readr` library is loaded to read in the cs file. We will also load the `ggplot2` package which is a powerful plotting package that creates elegant and complex plots in R. The `magrittr` library is loaded for the piping operator `%>%`.
+
+The `arules` and `arulesViz` packages are used to mine association rules and visualize them. The `cluster` package is used to perform cluster analysis and the `clValid` package is used to validate the cluster results.
 
 ```{r, message=FALSE, warning=FALSE}
 library(dplyr)
@@ -68,7 +70,7 @@ knitr::opts_chunk$set(cache = TRUE, warning = FALSE,
 
 ### 5.2 Reading in the data
 
-We read in the cs file `MERGED2014_15_PP.csv` into the data frame `csb.df` using the `read_csv` function of the `readr` package.
+We read in the csv file `MERGED2014_15_PP.csv` into the data frame `csb.df` using the `read_csv` function of the `readr` package.
 
 ```{r,message=FALSE, warning=FALSE, cache=TRUE}
 
@@ -79,7 +81,7 @@ csb.df = read_csv(paste0('/Users/akhoury/Desktop/MA 710/Assignment-1/CollegeScor
 
 ### 5.3 Data cleaning and variable modification
 
-Based on our decision to select certain variables, we will use the `SELECT` command from `dply` package to create a smaller data frame which contains only the variables of interest.
+Based on our decision to select certain variables, we will use the `SELECT` command from `dplyr` package to create a smaller data frame which contains only the variables of interest.
 
 ```{r, message=FALSE, warning=FALSE}
 csb.df %>%
@@ -89,7 +91,7 @@ csb.df %>%
 
 ```
 
-To prepare data for the cluster analysis, we need to convert the variables into numeric.
+To prepare data for the cluster analysis, we need to convert the variables into numeric and scale them so that the cluster results are not biased due to variables having different scales.
 
 ```{r}
 csb.vars.df %>%
@@ -112,7 +114,7 @@ csb.vars.df %>%
   {.} -> csb.var.numeric.df
 ```
 
-To prepare data for association rules, we need to create another data set with factor variables from all of the numeric variables we chose to work with. First, we need to convert the variable type into `factor` and then use the `make.ntiles` function, here we defined a new function `numeric_to_factor` to combine two steps together.
+To prepare data for association rules, we need to create another data set with factor variables from all of the numeric variables we choose to work with. First, we need to convert the variable type into `factor` and then use the `make.ntiles` function. Here we defined a new function `numeric_to_factor` to combine two steps together.
 
 ```{r, message=FALSE, warning=FALSE}
 make.ntiles = function (inputvar, n) {
@@ -213,7 +215,7 @@ summary(cluster5)
 summary(cluster0)
 ```
 
-Based on the statistical descriptions of 6 clusters, each cluster has different features compared to other clusters. Cluster 0 has highest values in ST_FIPS and REGION and lowest value in family income and loans. Cluster 1 is special for its highest family income and more likely to be public school, not married, and less first generation. Cluster 2 has the most first generation amount. Cluster 3 has less female and more campus brunch. Cluster 4 has more female and get highest loans. Cluster 5 has most married, higher pre degree and debt amount. 
+Based on the statistical descriptions of 6 clusters, each cluster has different features compared to other clusters. Cluster 0 has highest values in ST_FIPS and REGION and lowest value in family income and loans. Cluster 1 is special for its highest family income and more likely to be public school, not married, and less first generation. Cluster 2 has the most first generation amount. Cluster 3 has less female and more campus branches. Cluster 4 has more female and get highest loans. Cluster 5 has most married, Master's and Bachelor's degree colleges and debt amount. 
 
 In order to visualize the clusters which resulted from the density clustering, we will use the hullplot function.
 
@@ -498,6 +500,8 @@ On the other hand, most of the colleges in Cluster 2 have students of either med
 Following a multi-step approach of trying three different clustering methods one after the other - DBSCAN, PAM through CLARA and K-means, our team was able to determine the best method for clustering the College Scorecard data. The selection of the final method was based on comparison of performance measures such as connectivity, Dunn and Silhouette index, across the different methods. We identified that K-means with 2 clusters was the best method to cluster our observations since it had the least connectivity and the highest Dunn and Silhouette index.
 
 Further analysis of the two clusters obtained through association rules, helped us appreciate the characteristics of each cluster. The two clusters differed greatly on the control of the institution. While Cluster 1 was comprised mainly of public colleges with students of higher than average family income, Cluster 2 denoted the private for profit colleges with a high share of female students. Visualization of the rules revealed that most of the rules had high support and high lift, but low support.
+
+The conclusion of this assignment reinforces our learnings from our previous assignment where we found clear distinctions between public and private colleges based on exploratory data analysis. This assignment too makes it evident that public and private colleges form two separate clusters, implying that they do not have much in common.
 
 
 
