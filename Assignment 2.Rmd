@@ -242,7 +242,7 @@ clValid.result = clValid(csb.var.numeric.df, nClust=2:10, clMethods=c("clara"),
 print(summary(clValid.result))
 ```
 
-When we choose the number of clusters, we are looking to maximize Dunn (values are from 0 to infinity), to minimize Connectivity (whose values range from 0 to infinity) and to maximize the Silhouette (which has values between 0 to 1).  Based on the results, the best option for number of clusters is 2. We will use the CLARA clustering algorithm with number of cluster 2.
+When we choose the number of clusters, we are looking to maximize Dunn index (values are from 0 to infinity), to minimize Connectivity (whose values range from 0 to infinity) and to maximize the Silhouette width (which has values between 0 to 1).  Based on the results, the best option for number of clusters is 2. We will use the CLARA clustering algorithm with number of cluster 2.
 
 
 ```{r}
@@ -277,7 +277,7 @@ clValid.result = clValid(csb.var.omit.na.df, nClust=2:10, clMethods=c("clara"), 
                          maxitems=nrow(csb.var.omit.na.df), verbose=TRUE) 
 print(summary(clValid.result))
 ```
-When we choose the number of clusters, we are looking to maximize Dunn (which values are from 0 to infinity), to minimize Connectivity (which values ranges from 0 to infinity) and to maximize the Silhouette (which has values between 0 to 1).  Based on the results, the best option for number of clusters is 2. We will use the CLARA clustering algorithm with number of cluster 4. This is a different result compared to the first time we ran CLARA when the missing values were still present at the data set.
+When we choose the number of clusters, we are looking to maximize Dunn index (which values are from 0 to infinity), to minimize Connectivity (which values ranges from 0 to infinity) and to maximize the Silhouette width(which has values between 0 to 1).  Based on the results, the best option for number of clusters is 2. We will use the CLARA clustering algorithm with number of cluster 4. This is a different result compared to the first time we ran CLARA when the missing values were still present at the data set.
 
 ```{r}
 clara.result <- clara(x=csb.var.df, 4, correct.d = TRUE)
@@ -343,9 +343,9 @@ clValid.result = clValid(csb.var.omit.na.df, nClust=2:13, clMethods=c("kmeans","
 print(summary(clValid.result))
 ```
 
-When we choose the number of clusters, we are looking to maximize Dunn (values are from 0 to infinity), to minimize Connectivity (values range from 0 to infinity) and to maximize the Silhouette (which has values between 0 to 1). Based on the results the best number of clusters for each algorithm is: kmeans (n = 2), and clara (n = 4).
+When we choose the number of clusters, we are looking to maximize Dunn (values are from 0 to infinity), to minimize Connectivity (values range from 0 to infinity) and to maximize the Silhouette width (which has values between 0 to 1). Based on the results the best number of clusters for each algorithm is: kmeans (n = 2), and clara (n = 4).
 
-Since kmeans gives the best results for Connectivity, Dunn and Silhouette when the number of clusters is 2, we will use kmeans to build the clusters.
+Since kmeans gives the best results for Connectivity, Dunn index and Silhouette width when the number of clusters is 2, we will use kmeans to build the clusters.
 
 ```{r}
 kmeans.result = kmeans(csb.var.omit.na.df, centers=2)
@@ -461,7 +461,7 @@ It is evident that `CONTROL` = 3 which stands for private for-profit colleges oc
 
 ### 8.2 Visualization of clustering methods
 
-The following plot shows comparison of the different clustering methods based on connectivity, Dunn and silhouette
+The following plot shows comparison of the different clustering methods based on connectivity, Dunn index and silhouette width
 
 ```{r}
 par(mfrow=c(3,1))
@@ -497,7 +497,7 @@ On the other hand, most of the colleges in Cluster 2 have students of either med
 
 ## 9. Conclusion
 
-Following a multi-step approach of trying three different clustering methods one after the other - DBSCAN, PAM through CLARA and K-means, our team was able to determine the best method for clustering the College Scorecard data. The selection of the final method was based on comparison of performance measures such as connectivity, Dunn and Silhouette index, across the different methods. We identified that K-means with 2 clusters was the best method to cluster our observations since it had the least connectivity and the highest Dunn and Silhouette index.
+Following a multi-step approach of trying three different clustering methods one after the other - DBSCAN, PAM through CLARA and K-means, our team was able to determine the best method for clustering the College Scorecard data. The selection of the final method was based on comparison of performance measures such as connectivity, Dunn and Silhouette width, across the different methods. We identified that K-means with 2 clusters was the best method to cluster our observations since it had the least connectivity and the highest Dunn and Silhouette width.
 
 Further analysis of the two clusters obtained through association rules, helped us appreciate the characteristics of each cluster. The two clusters differed greatly on the control of the institution. While Cluster 1 was comprised mainly of public colleges with students of higher than average family income, Cluster 2 denoted the private for profit colleges with a high share of female students. Visualization of the rules revealed that most of the rules had high support and high lift, but low support.
 
